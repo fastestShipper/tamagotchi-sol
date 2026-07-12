@@ -38,11 +38,16 @@ The watcher polls `getSignaturesForAddress` + `getTransaction`, computes the bal
 - `node verify-parse.mjs <address>` — proves the on-chain parse path against real chain data (defaults to a live account; validates amount + sender extraction).
 - `node donate.devnet.mjs 0.1` — funds a throwaway donor via devnet airdrop and sends a real transfer to the cat, so you can watch the frontend react. (Devnet faucet is rate-limited per IP; if airdrop 429s, grab test SOL at https://faucet.solana.com and rerun.)
 
+## Persistence & stakes
+
+The pet is saved to `localStorage` and survives refreshes. It **keeps starving while the tab is closed** (energy drains by real elapsed time on next load; the crown buff halves that too). Lifetime stats persist across deaths: total SOL fed, number of gifts, best life, and pets lost. Death is recorded permanently; the death screen shows the run's stats and a distinct message if it starved while you were away.
+
 ## Verified
 
 - Reaction path (alerts, bubbles, tiers, confetti, permadeath, restart): confirmed in-browser.
 - On-chain read/parse path: confirmed against live mainnet transfers — parsed amounts match chain balance deltas exactly, senders are valid pubkeys.
 - Wallet keypair: seed cryptographically derives the vanity address (round-trip verified).
+- Persistence: offline-drain math confirmed (2m→83, 10m→16, 20m→dead; crowned pet survives 20m); live death records petsLost + bestLifeMs and persists across reload; stats accumulate on donation.
 
 ## Donation tiers
 
