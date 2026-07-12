@@ -2,17 +2,20 @@
 // polling against a public endpoint. Detects incoming transfers to WALLET_ADDRESS
 // and forwards (amount, sender) to Game.onDonation.
 
+// Multiple endpoints per network; the watcher rotates on rate-limit/failure so a
+// single flaky public RPC can't make it miss a donation.
 const RPC = {
-  devnet: 'https://api.devnet.solana.com',
-  mainnet: 'https://api.mainnet-beta.solana.com',
+  devnet: ['https://api.devnet.solana.com'],
+  mainnet: ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com'],
 };
 
 const CONFIG = {
   // The cat's vanity wallet. Same address on every network.
   WALLET_ADDRESS: 'C4t3XdZB36eHU11PK9QGtVgNPrKDDfkwvEHSAGwM64tT',
   // Flip to 'mainnet' to accept real SOL. 'devnet' is for free e2e testing.
-  NETWORK: 'devnet',
-  get RPC_URL() { return RPC[this.NETWORK]; },
+  NETWORK: 'mainnet',
+  get RPC_URLS() { return RPC[this.NETWORK]; },
+  get RPC_URL() { return RPC[this.NETWORK][0]; }, // primary, for display
   POLL_MS: 8000,
   MIN_SOL: 0.001, // ignore dust below this
 };
@@ -23,16 +26,26 @@ const SEEN_KEY = 'tamasol_seen_sigs';
 let seen = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'));
 let firstPoll = true;
 
+// Try each endpoint in turn; only throw if all of them fail.
 async function rpc(method, params) {
-  const res = await fetch(CONFIG.RPC_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`RPC ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error.message);
-  return json.result;
+  let lastErr;
+  for (const url of CONFIG.RPC_URLS) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      });
+      if (res.status === 429) { lastErr = new Error('RPC 429'); continue; }
+      if (!res.ok) { lastErr = new Error(`RPC ${res.status}`); continue; }
+      const json = await res.json();
+      if (json.error) { lastErr = new Error(json.error.message); continue; }
+      return json.result;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('all RPC endpoints failed');
 }
 
 function rememberSeen() {

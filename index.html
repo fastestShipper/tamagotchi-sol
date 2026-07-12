@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PIXEL PET · feed it with SOL</title>
+<title>BROKE DEV · fund the grind with SOL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -11,7 +11,7 @@
 <body>
 <div class="frame">
   <header>
-    <h1>PIXEL PET</h1>
+    <h1>BROKE DEV</h1>
     <div class="net" id="net-status">NET: OFF</div>
   </header>
 
@@ -26,21 +26,28 @@
       </div>
     </div>
     <div class="death hidden" id="death">
-      <div class="death-title">GAME OVER</div>
-      <div class="death-sub" id="death-sub">nobody fed it...</div>
+      <div class="death-title" id="death-title">SHIPPED</div>
+      <div class="death-sub" id="death-sub"></div>
       <div class="death-stats" id="death-stats"></div>
-      <button id="restart-btn">ADOPT ANOTHER</button>
+      <button id="restart-btn">KEEP BUILDING →</button>
     </div>
   </div>
 
   <div class="hud">
+    <div class="goal-row">
+      <div class="goal-head">
+        <span class="goal-label" id="goal-label">SHIP GAME #1</span>
+        <span id="goal-num">0.000 / 1 SOL</span>
+      </div>
+      <div class="goal-bar"><div id="goal-fill"></div></div>
+    </div>
     <div class="energy-row">
-      <span class="label">ENERGY</span>
+      <span class="label">STAMINA</span>
       <div class="energy-bar"><div id="energy-fill"></div></div>
       <span id="energy-num">100</span>
     </div>
     <div class="donate">
-      <span class="label">FEED IT WITH SOL →</span>
+      <span class="label">FUEL THE GRIND (SOL) →</span>
       <code id="wallet-addr">set your address in solana.js</code>
       <button id="copy-btn">COPY</button>
     </div>
@@ -54,7 +61,7 @@
   </details>
 </div>
 
-<script src="sprites.js"></script>
+<script src="dev-sprites.js"></script>
 <script src="game.js"></script>
 <script src="solana.js"></script>
 <script src="ui.js"></script>

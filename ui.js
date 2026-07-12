@@ -1,5 +1,5 @@
-// DOM layer: energy bar, speech bubbles, stream-style donation alerts,
-// death overlay, chime sounds, tier list, demo buttons.
+// DOM layer: stamina bar, ship-goal bar, speech bubbles, stream-style tip alerts,
+// ship-milestone overlay, chimes, tier list, demo buttons.
 const UI = {};
 
 const bubbleEl = document.getElementById('bubble');
@@ -15,6 +15,15 @@ UI.setEnergy = function (value) {
   document.getElementById('energy-num').textContent = Math.ceil(pct);
 };
 
+// Ship-goal bar: cumulative SOL raised toward the current target.
+UI.setGoal = function (raised, target, label) {
+  const pct = Math.max(0, Math.min(100, (raised / target) * 100));
+  document.getElementById('goal-fill').style.width = pct + '%';
+  document.getElementById('goal-label').textContent = label;
+  document.getElementById('goal-num').textContent =
+    `${raised.toFixed(3)} / ${target} SOL`;
+};
+
 UI.showBubble = function (text, xRatio, ms) {
   bubbleEl.textContent = text;
   bubbleEl.classList.remove('hidden');
@@ -25,7 +34,7 @@ UI.showBubble = function (text, xRatio, ms) {
 
 UI.showAlert = function (tier, amountSol, donor) {
   document.getElementById('alert-icon').src =
-    Sprites.spriteToDataURL(Sprites[tier.sprite], 5);
+    DevSprites.spriteToDataURL(DevSprites[tier.sprite], 5);
   document.getElementById('alert-title').textContent =
     `${donor} sent ${amountSol.toFixed(3)} SOL`;
   document.getElementById('alert-sub').textContent = `→ ${tier.label}`;
@@ -37,12 +46,6 @@ UI.showAlert = function (tier, amountSol, donor) {
   alertTimeout = setTimeout(() => alertEl.classList.add('hidden'), 6000);
 };
 
-function fmtLife(ms) {
-  const mins = Math.floor(ms / 60000);
-  const secs = Math.floor((ms % 60000) / 1000);
-  return `${mins}m ${secs}s`;
-}
-
 // Replace an element's children with plain-text lines (no innerHTML, XSS-safe).
 function setLines(el, lines) {
   el.replaceChildren();
@@ -52,17 +55,19 @@ function setLines(el, lines) {
   });
 }
 
-UI.showDeath = function (lifeMs, stats, offline) {
-  document.getElementById('death-sub').textContent = offline
-    ? `it starved while you were away... lived ${fmtLife(lifeMs)}`
-    : `nobody fed it... it lived ${fmtLife(lifeMs)}`;
-  if (stats) {
-    setLines(document.getElementById('death-stats'), [
-      `${stats.totalSol.toFixed(3)} SOL fed over its life`,
-      `best life: ${fmtLife(stats.bestLifeMs)} · pets lost: ${stats.petsLost}`,
-    ]);
-  }
+// Milestone reached: a real thing ships. Reuses the overlay element.
+UI.showShip = function (goalLabel, reward, raised) {
+  document.getElementById('death-title').textContent = 'SHIPPED';
+  setLines(document.getElementById('death-sub'), [
+    `${goalLabel} funded at ${raised.toFixed(3)} SOL`,
+  ]);
+  setLines(document.getElementById('death-stats'), [`unlocked: ${reward}`]);
+  document.getElementById('restart-btn').textContent = 'KEEP BUILDING →';
   document.getElementById('death').classList.remove('hidden');
+};
+
+UI.hideShip = function () {
+  document.getElementById('death').classList.add('hidden');
 };
 
 UI.renderStats = function (stats) {
@@ -72,12 +77,8 @@ UI.renderStats = function (stats) {
   const label = document.createElement('span');
   label.textContent = 'lifetime';
   el.append(label, document.createTextNode(
-    ` ${stats.totalSol.toFixed(3)} SOL · ${stats.donations} gifts · ` +
-    `best ${fmtLife(stats.bestLifeMs)} · lost ${stats.petsLost}`));
-};
-
-UI.hideDeath = function () {
-  document.getElementById('death').classList.add('hidden');
+    ` ${stats.totalSol.toFixed(3)} SOL raised · ${stats.donations} tips · ` +
+    `${stats.shipped} shipped · ${stats.burnouts} burnouts`));
 };
 
 UI.setNetStatus = function (status) {
@@ -93,11 +94,11 @@ UI.setNetStatus = function (status) {
   el.style.color = color;
 };
 
-// Tiny WebAudio chime, bigger tiers get longer arpeggios. No audio assets needed.
+// Tiny WebAudio chime; bigger tips get longer arpeggios. No audio assets needed.
 UI.playChime = function (tierId) {
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const notes = { tip: 1, snack: 2, meal: 3, toy: 4, party: 6, crown: 8 }[tierId] || 2;
+    const notes = { tip: 1, coffee: 2, redbull: 3, pizza: 4, rent: 6, sponsor: 8 }[tierId] || 2;
     const base = [523, 659, 784, 1047, 1319, 1568, 2093, 2637];
     for (let i = 0; i < notes; i++) {
       const osc = audioCtx.createOscillator();
@@ -121,7 +122,7 @@ function buildTierList() {
     const div = document.createElement('div');
     div.className = 'tier';
     const img = document.createElement('img');
-    img.src = Sprites.spriteToDataURL(Sprites[t.sprite], 3);
+    img.src = DevSprites.spriteToDataURL(DevSprites[t.sprite], 3);
     const span = document.createElement('span');
     span.textContent = `${t.minSol} · ${t.label}`;
     div.append(img, span);
@@ -154,7 +155,7 @@ function initUI() {
     document.getElementById('copy-btn').textContent = 'COPIED!';
     setTimeout(() => document.getElementById('copy-btn').textContent = 'COPY', 1500);
   });
-  document.getElementById('restart-btn').addEventListener('click', Game.restart);
+  document.getElementById('restart-btn').addEventListener('click', Game.dismissShip);
 
   Game.init();
   Solana.startWatcher();

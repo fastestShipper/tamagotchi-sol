@@ -1,124 +1,134 @@
-// Core game: pet state machine, energy, rendering, donation reactions.
-const S = window.Sprites;
+// Broke Dev: a pixel developer who survives on SOL tips. Two meters, both fed by
+// donations but distinct: STAMINA (volatile, drains over time, burnout at zero)
+// and the SHIP GOAL (cumulative SOL raised toward a target, never resets).
+const D = window.DevSprites;
 
 const WORLD_W = 160;
 const WORLD_H = 100;
-const FLOOR_Y = 78; // top of grass
-const PET_W = 16;
 
 const ENERGY_MAX = 100;
-const DRAIN_PER_SEC = 0.14;      // ~12 min of life from full
+const DRAIN_PER_SEC = 0.14;       // ~12 min from full to burnout
 const SLEEP_DRAIN_PER_SEC = 0.05;
 const SLEEPY_THRESHOLD = 30;
 
-// Donation tiers, highest first. minSol is the floor for that tier.
+// Funded roadmap. raised is cumulative; each goal target is an absolute SOL total.
+// Edit these: set your real SOL targets and what actually ships at each one.
+const GOALS = [
+  { target: 1.0, label: 'SHIP GAME #1', reward: 'a finished game + site + domain + pump.fun token' },
+  { target: 3.0, label: 'SHIP GAME #2', reward: 'the next build, funded live by chat' },
+  { target: 8.0, label: 'GO FULL-TIME', reward: 'quit the day job, build for real' },
+];
+
+// Tip tiers = a broke dev's survival kit. Higher tiers restore more stamina.
 const TIERS = [
-  { id: 'crown', minSol: 0.5,  label: 'GOLDEN CROWN', energy: ENERGY_MAX, sprite: 'CROWN',
-    thanks: ['A CROWN?! I am royalty now, thank you {donor}!', 'Thank you {donor}, I shall rule this meadow with sweetness'] },
-  { id: 'party', minSol: 0.1,  label: 'CAKE PARTY', energy: ENERGY_MAX, sprite: 'CAKE',
-    thanks: ['CAAAKE! {donor} you are my favorite person!', 'Party time! All thanks to {donor}!'] },
-  { id: 'toy',   minSol: 0.05, label: 'NEW BALL', energy: 45, sprite: 'BALL',
-    thanks: ['A ball! Thanks {donor}, watch me play!', '{donor} got me a ball, I am so happy!'] },
-  { id: 'meal',  minSol: 0.02, label: 'FULL MEAL', energy: 60, sprite: 'BOWL',
-    thanks: ['Nom nom nom... thank you {donor}!', 'A feast! {donor} knows what I like'] },
-  { id: 'snack', minSol: 0.01, label: 'SNACK', energy: 25, sprite: 'APPLE',
-    thanks: ['A little apple! Thanks {donor}!', 'Crunch crunch, thanks {donor}!'] },
-  { id: 'tip',   minSol: 0,    label: 'TINY TIP', energy: 5, sprite: 'HEART',
-    thanks: ['Every lamport counts, thanks {donor}!'] },
+  { id: 'sponsor', minSol: 0.5,  label: 'SPONSOR',   energy: ENERGY_MAX, sprite: 'ICON_SPONSOR',
+    thanks: ['A SPONSOR?! {donor} you absolute legend!', '{donor} just backed the whole grind!'] },
+  { id: 'rent',    minSol: 0.1,  label: 'RENT PAID',  energy: ENERGY_MAX, sprite: 'ICON_CASH',
+    thanks: ['RENT IS PAID! thank you {donor}!', '{donor} kept the lights on another month!'] },
+  { id: 'pizza',   minSol: 0.05, label: 'PIZZA',      energy: 55, sprite: 'ICON_PIZZA',
+    thanks: ['REAL FOOD! thanks {donor}!', 'pizza time, back to the keyboard {donor}!'] },
+  { id: 'redbull', minSol: 0.02, label: 'RED BULL',   energy: 65, sprite: 'ICON_REDBULL',
+    thanks: ['WIIINGS! thank you {donor}!', '{donor} fueled the all-nighter!'] },
+  { id: 'coffee',  minSol: 0.01, label: 'COFFEE',     energy: 30, sprite: 'ICON_COFFEE',
+    thanks: ['caffeine acquired! thanks {donor}!', '{donor} bought me a coffee, we build!'] },
+  { id: 'tip',     minSol: 0,    label: 'TIP',        energy: 8,  sprite: 'ICON_TIP',
+    thanks: ['every lamport counts, thanks {donor}!'] },
 ];
 
-const IDLE_PHRASES = [
-  'la la la~', 'feeling sleepy...', 'does anyone love me?', 'what a lovely day',
-  'let\'s play!', 'mmm... snacks', 'boing boing', 'hi hi!',
+const CODING_PHRASES = [
+  'git push --force, yolo', 'just one more commit...', 'works on my machine',
+  'refactoring... again', 'npm install and pray', 'ship it friday',
+  'stackoverflow is my mentor', 'who needs sleep anyway',
 ];
-const HUNGRY_PHRASES = [
-  'i\'m hungry...', 'feeling weak...', '0.01 SOL and i keep dancing...',
-  'don\'t let me die...', 'a snack please...',
+const LOW_PHRASES = [
+  'running on fumes...', 'need caffeine...', 'my eyes hurt...',
+  'rent is due soon...', 'send help (and red bull)...',
 ];
-
-const SAVE_KEY = 'pixelpet_save_v1';
-
-// Lifetime stats persist even across pet deaths (the "stakes").
-const defaultStats = () => ({
-  totalSol: 0, donations: 0, bestLifeMs: 0, petsLost: 0,
-});
+const BURNOUT_PHRASES = [
+  'i cant anymore...', 'burned out. anyone?', 'is someone there...?',
+  'one tip and i\'m back... please',
+];
 
 const state = {
   energy: ENERGY_MAX,
-  activity: 'idle',      // idle | walk | play | eat | party | sleep | dead
+  activity: 'coding',   // coding | drink | stress | sleep | burnout | ship
   activityUntil: 0,
-  x: 88, facing: 1,
   frame: 0,
-  hasCrown: false,
-  sugarRushUntil: 0,     // crown buff: half drain (performance.now clock)
-  ballUntil: 0,          // toy: chases ball
-  ballX: 60,
+  goalIndex: 0,
+  raised: 0,            // cumulative SOL, monotonic, never decreases
+  sugarRushUntil: 0,    // sponsor buff: half drain
   confetti: [],
-  clouds: [{ x: 18, y: 12, s: 1 }, { x: 90, y: 26, s: 0.6 }, { x: 130, y: 8, s: 0.8 }],
-  dead: false,
+  stars: [{ x: 14, y: 12 }, { x: 30, y: 9 }, { x: 22, y: 20 }, { x: 38, y: 16 }],
   bornAt: Date.now(),
-  stats: defaultStats(),
+  burnout: false,
+  stats: null,
 };
 
-// Persist only the durable fields. sugarRush is stored as remaining ms so it
-// survives the performance.now() clock reset on reload.
+const defaultStats = () => ({ totalSol: 0, donations: 0, shipped: 0, burnouts: 0 });
+
+let canvas, ctx, lastTime = 0, lastLogicAt = 0, animTimer = 0, blinkTimer = 0, phraseTimer = 6;
+let spriteW = 26, spriteH = 22, spriteX = 67, spriteY = 60;
+
+// ---------- persistence ----------
+const SAVE_KEY = 'brokedev_save_v1';
+
 function saveState() {
   const sugarRemaining = Math.max(0, state.sugarRushUntil - performance.now());
   localStorage.setItem(SAVE_KEY, JSON.stringify({
-    energy: state.energy,
-    hasCrown: state.hasCrown,
-    sugarRemaining,
-    bornAt: state.bornAt,
-    dead: state.dead,
-    lastSeen: Date.now(),
-    stats: state.stats,
+    energy: state.energy, raised: state.raised, goalIndex: state.goalIndex,
+    sugarRemaining, bornAt: state.bornAt, burnout: state.burnout,
+    lastSeen: Date.now(), stats: state.stats,
   }));
 }
 
 function loadState() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { saved = null; }
+  state.stats = saved ? { ...defaultStats(), ...(saved.stats || {}) } : defaultStats();
   if (!saved) return;
 
-  state.stats = { ...defaultStats(), ...(saved.stats || {}) };
+  // Goal progress is money; it can only be restored upward, never reset.
+  state.raised = Math.max(0, saved.raised || 0);
+  state.goalIndex = saved.goalIndex || 0;
   state.bornAt = saved.bornAt || Date.now();
-  state.hasCrown = !!saved.hasCrown;
   state.sugarRushUntil = performance.now() + (saved.sugarRemaining || 0);
 
-  if (saved.dead) { state.dead = true; state.activity = 'dead'; state.energy = 0; return; }
-
-  // The pet keeps starving while the tab is closed. Apply offline drain.
+  // Stamina keeps draining while the tab is closed.
   const offlineSec = Math.max(0, (Date.now() - (saved.lastSeen || Date.now())) / 1000);
-  const drainRate = saved.sugarRemaining > 0 ? DRAIN_PER_SEC * 0.5 : DRAIN_PER_SEC;
-  state.energy = Math.max(0, (saved.energy ?? ENERGY_MAX) - drainRate * offlineSec);
-  if (state.energy <= 0) { state.dead = true; state.activity = 'dead'; state.offlineDeath = true; }
+  const rate = saved.sugarRemaining > 0 ? DRAIN_PER_SEC * 0.5 : DRAIN_PER_SEC;
+  state.energy = Math.max(0, (saved.energy ?? ENERGY_MAX) - rate * offlineSec);
+  if (state.energy <= 0) { state.burnout = true; state.activity = 'burnout'; }
 }
 
-let canvas, ctx, lastTime = 0, lastLogicAt = 0, animTimer = 0, blinkTimer = 0, phraseTimer = 8;
-
+// ---------- lifecycle ----------
 function init() {
   canvas = document.getElementById('game');
   ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
 
+  spriteW = D.DEV_CODE[0].length;
+  spriteH = D.DEV_CODE.length;
+  spriteX = Math.round((WORLD_W - spriteW) / 2);
+  spriteY = WORLD_H - spriteH - 6;
+
   loadState();
   UI.renderStats(state.stats);
+  UI.setGoal(state.raised, currentGoal().target, currentGoal().label);
 
   lastTime = performance.now();
   lastLogicAt = lastTime;
   requestAnimationFrame(loop);
   setInterval(heartbeat, 1000);
   setInterval(saveState, 5000);
-  // Save when the tab is hidden or closed so offline drain is accurate.
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
   window.addEventListener('beforeunload', saveState);
 
-  if (state.dead) {
-    UI.showDeath(Date.now() - state.bornAt, state.stats, state.offlineDeath);
-  } else {
-    setActivity('walk', 4);
-  }
-  render(); // first paint even if rAF is throttled (hidden tab)
+  setActivity('coding', 4);
+  render();
+}
+
+function currentGoal() {
+  return GOALS[Math.min(state.goalIndex, GOALS.length - 1)];
 }
 
 function setActivity(name, seconds) {
@@ -127,150 +137,125 @@ function setActivity(name, seconds) {
 }
 
 function pickNextActivity() {
-  if (state.dead) return;
-  if (performance.now() < state.ballUntil) { setActivity('play', 3); return; }
+  if (state.burnout) { setActivity('burnout', 3); return; }
   if (state.energy < SLEEPY_THRESHOLD) {
-    setActivity(Math.random() < 0.6 ? 'sleep' : 'idle', 5 + Math.random() * 4);
+    setActivity(Math.random() < 0.5 ? 'sleep' : 'stress', 4 + Math.random() * 4);
     return;
   }
   const roll = Math.random();
-  if (roll < 0.45) setActivity('walk', 2 + Math.random() * 4);
-  else if (roll < 0.75) setActivity('idle', 2 + Math.random() * 3);
-  else setActivity('play', 3 + Math.random() * 3);
+  if (roll < 0.7) setActivity('coding', 3 + Math.random() * 4);
+  else setActivity('stress', 2 + Math.random() * 2);
 }
 
-// Energy uses real elapsed time (uncapped) so hidden tabs still drain honestly.
+// ---------- update ----------
 function drainEnergy(elapsedSec) {
-  if (state.dead) return;
+  if (state.burnout) return;
   let drain = state.activity === 'sleep' ? SLEEP_DRAIN_PER_SEC : DRAIN_PER_SEC;
   if (performance.now() < state.sugarRushUntil) drain *= 0.5;
   state.energy = Math.max(0, state.energy - drain * elapsedSec);
-  if (state.energy <= 0) die();
+  if (state.energy <= 0) enterBurnout();
+}
+
+function enterBurnout() {
+  if (state.burnout) return;
+  state.burnout = true;
+  state.activity = 'burnout';
+  state.stats.burnouts += 1;
+  saveState();
+  say(BURNOUT_PHRASES[0], 4000);
+  UI.renderStats(state.stats);
 }
 
 function update(dt) {
-  if (state.dead) return;
-
-  // Activity scheduling
   if (performance.now() > state.activityUntil) pickNextActivity();
 
-  // Movement
-  if (state.activity === 'walk') {
-    state.x += state.facing * 14 * dt;
-    if (state.x < 8) { state.x = 8; state.facing = 1; }
-    if (state.x > WORLD_W - PET_W - 8) { state.x = WORLD_W - PET_W - 8; state.facing = -1; }
-    if (Math.random() < 0.008) state.facing *= -1;
-  } else if (state.activity === 'play') {
-    // Chase the ball back and forth
-    state.ballX = WORLD_W / 2 + Math.sin(performance.now() / 600) * 50;
-    const target = state.ballX - PET_W / 2;
-    const diff = target - state.x;
-    state.facing = diff > 0 ? 1 : -1;
-    state.x += Math.sign(diff) * Math.min(Math.abs(diff), 30 * dt);
-  }
-
-  // Confetti physics
   state.confetti = state.confetti.filter(p => p.y < WORLD_H);
   for (const p of state.confetti) { p.y += p.vy * dt; p.x += p.vx * dt; }
 
-  // Ambient speech
   phraseTimer -= dt;
-  if (phraseTimer <= 0 && state.activity !== 'sleep') {
-    const pool = state.energy < SLEEPY_THRESHOLD ? HUNGRY_PHRASES : IDLE_PHRASES;
-    say(pool[Math.floor(Math.random() * pool.length)], 3500);
-    phraseTimer = 7 + Math.random() * 8;
+  if (phraseTimer <= 0) {
+    let pool = CODING_PHRASES;
+    if (state.burnout) pool = BURNOUT_PHRASES;
+    else if (state.energy < SLEEPY_THRESHOLD) pool = LOW_PHRASES;
+    if (state.activity !== 'sleep' || state.burnout) {
+      say(pool[Math.floor(Math.random() * pool.length)], 3500);
+    }
+    phraseTimer = state.burnout ? 5 : 7 + Math.random() * 6;
   }
 
-  // Timers for anim frames + blink
   animTimer += dt;
   if (animTimer > 0.25) { animTimer = 0; state.frame = (state.frame + 1) % 2; }
   blinkTimer += dt;
 
-  // Clouds drift
-  for (const c of state.clouds) {
-    c.x += c.s * 2 * dt;
-    if (c.x > WORLD_W + 20) c.x = -30;
-  }
-}
-
-function die() {
-  state.dead = true;
-  state.activity = 'dead';
-  const lifeMs = Date.now() - state.bornAt;
-  state.stats.petsLost += 1;
-  state.stats.bestLifeMs = Math.max(state.stats.bestLifeMs, lifeMs);
-  saveState();
-  say('...', 2000);
-  UI.showDeath(lifeMs, state.stats);
-  UI.renderStats(state.stats);
+  for (const s of state.stars) { s.tw = (Math.sin(performance.now() / 500 + s.x) + 1) / 2; }
 }
 
 function currentSprite() {
   switch (state.activity) {
-    case 'sleep': return S.CAT_SLEEP;
-    case 'eat':   return S.CAT_EAT;
-    case 'party': return S.CAT_HAPPY;
-    case 'play':  return state.frame ? S.CAT_HAPPY : S.CAT_IDLE;
-    case 'dead':  return S.CAT_DEAD;
-    default:
-      if (blinkTimer % 4 > 3.8) return S.CAT_BLINK;
-      return S.CAT_IDLE;
+    case 'drink':   return D.DEV_DRINK;
+    case 'stress':  return D.DEV_STRESS;
+    case 'sleep':   return D.DEV_SLEEP;
+    case 'burnout': return D.DEV_BURN;
+    case 'ship':    return D.DEV_SHIP;
+    default:        return D.DEV_CODE;
   }
 }
 
+// ---------- render ----------
 function render() {
-  // Sky bands
-  const bands = ['#bfe8ff', '#cdeeff', '#dbf4ff', '#e9faff'];
+  // Cozy dark room, coder-at-night mood.
+  const bands = ['#1c1830', '#241d3a', '#2b2342', '#33294c'];
   for (let i = 0; i < bands.length; i++) {
     ctx.fillStyle = bands[i];
-    ctx.fillRect(0, i * 24, WORLD_W, 24);
+    ctx.fillRect(0, i * 18, WORLD_W, 18);
   }
-  // Sun
-  ctx.fillStyle = '#ffe28a';
-  ctx.fillRect(136, 8, 12, 12);
-  ctx.fillStyle = '#ffd94a';
-  ctx.fillRect(138, 10, 8, 8);
-  // Clouds
-  ctx.fillStyle = '#ffffff';
-  for (const c of state.clouds) {
-    const x = Math.round(c.x), y = c.y;
-    ctx.fillRect(x, y + 3, 22, 5);
-    ctx.fillRect(x + 4, y, 12, 4);
+  // Window with moon + stars (upper right)
+  ctx.fillStyle = '#12203a';
+  ctx.fillRect(112, 8, 40, 30);
+  ctx.fillStyle = '#e9e6c8';
+  ctx.fillRect(138, 12, 8, 8); ctx.fillRect(140, 11, 4, 10); // moon
+  ctx.fillStyle = '#0d1830';
+  ctx.fillRect(140, 12, 4, 6); // moon crescent shade
+  for (const s of state.stars) {
+    ctx.fillStyle = (s.tw ?? 1) > 0.5 ? '#fffbe6' : '#8a86b0';
+    ctx.fillRect(112 + (s.x % 40), 8 + (s.y % 28), 1, 1);
   }
-  // Grass
-  ctx.fillStyle = '#8fd97a';
-  ctx.fillRect(0, FLOOR_Y, WORLD_W, WORLD_H - FLOOR_Y);
-  ctx.fillStyle = '#6fbf5e';
-  for (let x = 0; x < WORLD_W; x += 10) ctx.fillRect(x + (x % 20 ? 3 : 6), FLOOR_Y, 2, 3);
-  // Flowers
-  ctx.fillStyle = '#ff9fb8';
-  ctx.fillRect(24, FLOOR_Y + 8, 2, 2); ctx.fillRect(132, FLOOR_Y + 12, 2, 2);
-  ctx.fillStyle = '#ffd94a';
-  ctx.fillRect(90, FLOOR_Y + 14, 2, 2);
-
-  const px = Math.round(state.x);
-  const bounce = (state.activity === 'walk' || state.activity === 'play') && state.frame ? -1 : 0;
-  const py = FLOOR_Y - 15 + bounce;
-
-  if (state.dead) {
-    S.drawSprite(ctx, S.GRAVE, px, FLOOR_Y - 15);
-  } else {
-    if (performance.now() < state.ballUntil) {
-      S.drawSprite(ctx, S.BALL, Math.round(state.ballX), FLOOR_Y - 7);
-    }
-    S.drawSprite(ctx, currentSprite(), px, py, state.facing < 0);
-    if (state.hasCrown && state.activity !== 'sleep') {
-      S.drawSprite(ctx, S.CROWN, px + 3, py - 3, state.facing < 0);
-    }
-    if (state.activity === 'sleep') {
-      ctx.fillStyle = '#3b2d3f';
-      const t = Math.floor(performance.now() / 500) % 3;
-      ctx.font = '6px monospace';
-      ctx.fillText('z', px + 16 + t, py - 2 - t * 2);
-    }
+  // window frame
+  ctx.fillStyle = '#3b2f52';
+  ctx.fillRect(112, 8, 40, 2); ctx.fillRect(112, 36, 40, 2);
+  ctx.fillRect(112, 8, 2, 30); ctx.fillRect(150, 8, 2, 30); ctx.fillRect(131, 8, 1, 30);
+  // string lights along the top
+  for (let x = 4; x < WORLD_W; x += 14) {
+    ctx.fillStyle = ['#ff9fb8', '#8fd97a', '#7fc8f0', '#ffd94a'][(x / 14) % 4 | 0];
+    ctx.fillRect(x, 3, 2, 2);
+  }
+  // floor
+  ctx.fillStyle = '#191324';
+  ctx.fillRect(0, WORLD_H - 8, WORLD_W, 8);
+  // pile of empty cans in the corner (evidence of the grind)
+  const cans = [[6, WORLD_H - 12], [10, WORLD_H - 12], [8, WORLD_H - 16], [14, WORLD_H - 12]];
+  for (const [cx, cy] of cans) {
+    ctx.fillStyle = '#e2482f'; ctx.fillRect(cx, cy, 3, 4);
+    ctx.fillStyle = '#ffd94a'; ctx.fillRect(cx, cy, 3, 1);
   }
 
-  // Confetti
+  // the dev
+  D.drawSprite(ctx, currentSprite(), spriteX, spriteY);
+
+  // sleep zzz
+  if (state.activity === 'sleep') {
+    ctx.fillStyle = '#9fb0c4';
+    const t = Math.floor(performance.now() / 500) % 3;
+    ctx.font = '6px monospace';
+    ctx.fillText('z', spriteX + spriteW - 2 + t, spriteY + 2 - t * 2);
+  }
+
+  // burnout dims the whole room
+  if (state.burnout) {
+    ctx.fillStyle = 'rgba(10,8,16,0.55)';
+    ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  }
+
   for (const p of state.confetti) {
     ctx.fillStyle = p.color;
     ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 2);
@@ -281,7 +266,7 @@ function render() {
 
 function loop(t) {
   const rawDt = (t - lastTime) / 1000;
-  const dt = Math.min(rawDt, 0.1); // cap for movement/animation only
+  const dt = Math.min(rawDt, 0.1);
   lastTime = t;
   lastLogicAt = performance.now();
   drainEnergy(rawDt);
@@ -290,21 +275,19 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 
-// Heartbeat: browsers freeze rAF in hidden/occluded tabs, but setInterval
-// still fires (throttled to >=1s). Keeps energy draining and death honest.
+// Keeps stamina draining when the tab is hidden and rAF is frozen.
 function heartbeat() {
   const now = performance.now();
   const elapsed = (now - lastLogicAt) / 1000;
-  if (elapsed > 1.5) { // rAF is frozen; take over logic
+  if (elapsed > 1.5) {
     lastLogicAt = now;
     drainEnergy(elapsed);
     UI.setEnergy(state.energy);
   }
 }
 
-function say(text, ms) {
-  UI.showBubble(text, state.x / WORLD_W, ms);
-}
+// ---------- donations ----------
+function say(text, ms) { UI.showBubble(text, spriteX / WORLD_W, ms); }
 
 function throwConfetti(n) {
   const colors = ['#ff9fb8', '#ffd94a', '#8fd97a', '#7fc8f0', '#c98ff2'];
@@ -317,65 +300,57 @@ function throwConfetti(n) {
   }
 }
 
-// Entry point for donations (real or demo). amountSol is a number, donor a display string.
 function onDonation(amountSol, donor) {
-  if (state.dead) return;
   const tier = TIERS.find(t => amountSol >= t.minSol) || TIERS[TIERS.length - 1];
+
+  // Survival meter (volatile) + revive from burnout.
   state.energy = Math.min(ENERGY_MAX, state.energy + tier.energy);
-  state.stats.totalSol += amountSol;
+  if (state.burnout && state.energy > 0) {
+    state.burnout = false;
+    say('IM BACK. thank you.', 4000);
+  }
+
+  // Ship goal (permanent, money). Cumulative, never decreases.
+  state.raised += amountSol;
+  state.stats.totalSol = state.raised;
   state.stats.donations += 1;
-  UI.renderStats(state.stats);
 
   const shortDonor = donor.length > 12 ? donor.slice(0, 4) + '..' + donor.slice(-4) : donor;
-  const msg = tier.thanks[Math.floor(Math.random() * tier.thanks.length)]
-    .replace('{donor}', shortDonor);
+  const msg = tier.thanks[Math.floor(Math.random() * tier.thanks.length)].replace('{donor}', shortDonor);
 
   UI.showAlert(tier, amountSol, shortDonor);
   say(msg, 6000);
   UI.playChime(tier.id);
+  UI.setGoal(state.raised, currentGoal().target, currentGoal().label);
+  UI.renderStats(state.stats);
 
+  if (tier.id === 'sponsor') {
+    state.sugarRushUntil = performance.now() + 10 * 60 * 1000;
+    throwConfetti(70);
+  } else if (tier.id === 'rent') {
+    throwConfetti(50);
+  } else {
+    setActivity('drink', 3); // coffee / red bull / pizza: he consumes it
+  }
+
+  checkMilestone();
   saveState();
+}
 
-  switch (tier.id) {
-    case 'crown':
-      state.hasCrown = true;
-      state.sugarRushUntil = performance.now() + 10 * 60 * 1000;
-      throwConfetti(80);
-      setActivity('party', 6);
-      break;
-    case 'party':
-      throwConfetti(60);
-      setActivity('party', 6);
-      break;
-    case 'toy':
-      state.ballUntil = performance.now() + 30 * 1000;
-      setActivity('play', 5);
-      break;
-    case 'meal':
-      setActivity('eat', 4);
-      break;
-    case 'snack':
-      setActivity('eat', 2.5);
-      break;
-    default:
-      setActivity('party', 2);
+// Crossing the current goal target ships something real.
+function checkMilestone() {
+  const goal = currentGoal();
+  if (state.raised >= goal.target && state.goalIndex < GOALS.length) {
+    state.stats.shipped += 1;
+    state.goalIndex += 1;
+    setActivity('ship', 8);
+    throwConfetti(120);
+    UI.showShip(goal.label, goal.reward, state.raised);
+    UI.setGoal(state.raised, currentGoal().target, currentGoal().label);
+    UI.renderStats(state.stats);
   }
 }
 
-function restart() {
-  // Fresh pet, but lifetime stats (donations, pets lost) carry over.
-  state.energy = ENERGY_MAX;
-  state.dead = false;
-  state.offlineDeath = false;
-  state.hasCrown = false;
-  state.sugarRushUntil = 0;
-  state.ballUntil = 0;
-  state.confetti = [];
-  state.bornAt = Date.now();
-  setActivity('walk', 3);
-  UI.hideDeath();
-  saveState();
-  say('hello! i\'m new here!', 4000);
-}
+function dismissShip() { UI.hideShip(); setActivity('coding', 3); }
 
-window.Game = { init, onDonation, restart, TIERS, state };
+window.Game = { init, onDonation, dismissShip, TIERS, GOALS, state };
