@@ -26,21 +26,35 @@
       </div>
     </div>
     <div class="death hidden" id="death">
-      <div class="death-title" id="death-title">SHIPPED</div>
+      <div class="death-title" id="death-title">UPGRADED</div>
       <div class="death-sub" id="death-sub"></div>
       <div class="death-stats" id="death-stats"></div>
-      <button id="restart-btn">KEEP BUILDING →</button>
+      <button id="restart-btn">BACK TO WORK →</button>
     </div>
   </div>
 
   <div class="hud">
-    <div class="goal-row">
-      <div class="goal-head">
-        <span class="goal-label" id="goal-label">SHIP GAME #1</span>
-        <span id="goal-num">0.000 / 1 SOL</span>
+    <div class="upgrade-row">
+      <div class="upgrade-head">
+        <span class="upgrade-label" id="upgrade-label">NEXT: DESK LAMP</span>
+        <span id="upgrade-num">0.000 / 0.05 SOL</span>
       </div>
-      <div class="goal-bar"><div id="goal-fill"></div></div>
+      <div class="upgrade-bar"><div id="upgrade-fill"></div></div>
     </div>
+
+    <div class="dash" id="dash">
+      <div class="dash-row">
+        <span class="dash-key">BUILDING</span>
+        <span id="dash-feature">auto-save</span>
+        <span class="dash-status" id="dash-status">STABLE</span>
+      </div>
+      <div class="dash-bar" id="dash-bar">██░░░░░░░░ 12%</div>
+      <div class="dash-foot">
+        <span id="dash-meta">bugs: 0 · awake: 0h</span>
+        <span class="dash-log" id="dash-log">&gt; v0.1 — it runs</span>
+      </div>
+    </div>
+
     <div class="energy-row">
       <span class="label">STAMINA</span>
       <div class="energy-bar"><div id="energy-fill"></div></div>
@@ -55,10 +69,18 @@
     <div class="stats" id="stats"></div>
   </div>
 
+  <section class="portfolio">
+    <h2>STUFF I'VE ACTUALLY SHIPPED</h2>
+    <p class="portfolio-note">not promises — real things i built. tips fund upgrades to <em>this</em> room, live.</p>
+    <div class="portfolio-list" id="portfolio-list"></div>
+  </section>
+
   <details class="demo">
     <summary>demo mode (test without SOL)</summary>
     <div class="demo-btns" id="demo-btns"></div>
   </details>
+
+  <p class="warn">a dramatized simulation about grinding, burnout &amp; broke-dev life. be kind. if you're struggling, reach out to someone.</p>
 </div>
 
 <script src="dev-sprites.js"></script>

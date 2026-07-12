@@ -6,15 +6,17 @@ things. Two meters, both fed by tips but distinct:
 - **STAMINA** (volatile): drains over ~12 minutes as he gets tired, hungry,
   stressed. Tips refill it. Hits zero and he **burns out** (slumps, guilt-trips
   chat, stalls) — but this never touches the money raised. A later tip revives him.
-- **SHIP GOAL** (permanent): cumulative SOL raised toward a target (e.g. 1.0 SOL →
-  SHIP GAME #1). Only real tips move it and it never resets. Cross the target and a
-  **SHIPPED** milestone fires — that's when a real deliverable (game + site +
-  domain + pump.fun token) goes live. Then the next goal opens. A funded roadmap.
+- **NEXT UPGRADE** (permanent): cumulative SOL raised toward the next visible upgrade
+  to *this very room/app*. Cross a tier and it happens **live** — a desk lamp, a plant,
+  a new monitor, a second screen, a cat, RGB studio glow. Only real tips move it and it
+  never resets. No promises of external games — the upgrade **is** the deliverable, and
+  the audience watches the world grow. Edit the `UPGRADES` ladder in `game.js`.
 
 Tips are a broke dev's survival kit: coffee, Red Bull, pizza, rent, sponsor. Each
 restores different stamina and fires a stream-style alert + thank-you + chime.
-Everything is denominated in SOL (no fiat). Edit the `GOALS` roadmap and `TIERS`
-in `game.js`, and set your real deliverables per milestone.
+Everything is denominated in SOL (no fiat). A **dev dashboard** (feature / build % /
+bugs / changelog) shows he actually works, and a **portfolio** section links your real
+shipped demos (proof, not promises). Edit `PROJECTS` in `ui.js` with your real links.
 
 > Formerly a tamagotchi pet ("Pixel Pet"); pivoted to Broke Dev. The wallet,
 > donation watcher, alerts, and persistence carried over unchanged.
