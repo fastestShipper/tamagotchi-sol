@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIXEL PET · feed it with SOL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="frame">
+  <header>
+    <h1>PIXEL PET</h1>
+    <div class="net" id="net-status">NET: OFF</div>
+  </header>
+
+  <div class="screen-wrap">
+    <canvas id="game" width="160" height="100"></canvas>
+    <div class="bubble hidden" id="bubble"></div>
+    <div class="alert hidden" id="alert">
+      <img id="alert-icon" alt="">
+      <div>
+        <div class="alert-title" id="alert-title"></div>
+        <div class="alert-sub" id="alert-sub"></div>
+      </div>
+    </div>
+    <div class="death hidden" id="death">
+      <div class="death-title">GAME OVER</div>
+      <div class="death-sub" id="death-sub">nobody fed it...</div>
+      <button id="restart-btn">ADOPT ANOTHER</button>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="energy-row">
+      <span class="label">ENERGY</span>
+      <div class="energy-bar"><div id="energy-fill"></div></div>
+      <span id="energy-num">100</span>
+    </div>
+    <div class="donate">
+      <span class="label">FEED IT WITH SOL →</span>
+      <code id="wallet-addr">set your address in solana.js</code>
+      <button id="copy-btn">COPY</button>
+    </div>
+    <div class="tiers" id="tiers"></div>
+  </div>
+
+  <details class="demo">
+    <summary>demo mode (test without SOL)</summary>
+    <div class="demo-btns" id="demo-btns"></div>
+  </details>
+</div>
+
+<script src="sprites.js"></script>
+<script src="game.js"></script>
+<script src="solana.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

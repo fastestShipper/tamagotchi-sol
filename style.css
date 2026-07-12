@@ -1,0 +1,168 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffeef5;
+  background-image:
+    linear-gradient(45deg, #ffe4ef 25%, transparent 25%, transparent 75%, #ffe4ef 75%),
+    linear-gradient(45deg, #ffe4ef 25%, transparent 25%, transparent 75%, #ffe4ef 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  font-family: 'Press Start 2P', monospace;
+  color: #3b2d3f;
+  padding: 16px;
+}
+
+.frame {
+  width: 100%;
+  max-width: 640px;
+  background: #fff8fb;
+  border: 4px solid #3b2d3f;
+  border-radius: 6px;
+  box-shadow: 8px 8px 0 #f2b8cf;
+  padding: 14px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+h1 { font-size: 16px; letter-spacing: 2px; color: #e2607e; text-shadow: 2px 2px 0 #ffd3e0; }
+.net { font-size: 8px; }
+
+.screen-wrap {
+  position: relative;
+  border: 4px solid #3b2d3f;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #bfe8ff;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.bubble {
+  position: absolute;
+  top: 12%;
+  max-width: 55%;
+  background: #ffffff;
+  border: 3px solid #3b2d3f;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 8px;
+  line-height: 1.6;
+  box-shadow: 3px 3px 0 rgba(59, 45, 63, 0.25);
+}
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 16px;
+  border: 6px solid transparent;
+  border-top-color: #3b2d3f;
+}
+
+.alert {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #3b2d3f;
+  color: #fff8fb;
+  border: 3px solid #ffd94a;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.alert img { width: 32px; height: 32px; image-rendering: pixelated; }
+.alert-title { font-size: 8px; color: #ffd94a; margin-bottom: 5px; }
+.alert-sub { font-size: 7px; }
+.alert.pop { animation: pop 0.35s steps(4); }
+@keyframes pop {
+  0% { transform: translateY(-60px); }
+  100% { transform: translateY(0); }
+}
+
+.death {
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 45, 63, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+.death-title { font-size: 22px; color: #e2607e; text-shadow: 3px 3px 0 #000; }
+.death-sub { font-size: 8px; color: #ffd3e0; line-height: 1.8; }
+
+.hud { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 7px; }
+
+.energy-row { display: flex; align-items: center; gap: 8px; }
+.energy-bar {
+  flex: 1;
+  height: 14px;
+  border: 3px solid #3b2d3f;
+  border-radius: 3px;
+  background: #ffe4ef;
+  overflow: hidden;
+}
+#energy-fill { height: 100%; width: 100%; background: #8fd97a; transition: width 0.5s; }
+#energy-num { font-size: 9px; min-width: 30px; text-align: right; }
+
+.donate { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.donate code {
+  font-family: inherit;
+  font-size: 7px;
+  background: #ffe4ef;
+  border: 2px solid #3b2d3f;
+  padding: 5px 7px;
+  border-radius: 3px;
+}
+
+button {
+  font-family: inherit;
+  font-size: 7px;
+  padding: 6px 10px;
+  background: #e2607e;
+  color: #fff8fb;
+  border: 2px solid #3b2d3f;
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 #3b2d3f;
+  cursor: pointer;
+}
+button:hover { background: #ff7d9a; }
+button:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.tiers { display: flex; flex-wrap: wrap; gap: 8px; }
+.tier {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 6px;
+  background: #ffffff;
+  border: 2px solid #3b2d3f;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+.tier img { width: 18px; height: 18px; image-rendering: pixelated; }
+
+.demo { margin-top: 12px; font-size: 7px; }
+.demo summary { cursor: pointer; color: #9a7a8a; }
+.demo-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.demo-btns button { background: #9aa3b2; }
+
+.hidden { display: none !important; }
