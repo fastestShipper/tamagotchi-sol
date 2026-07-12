@@ -160,6 +160,28 @@ button:active { transform: translate(2px, 2px); box-shadow: none; }
 }
 .tier img { width: 18px; height: 18px; image-rendering: pixelated; }
 
+.stats {
+  font-size: 6px;
+  color: #9a7a8a;
+  line-height: 1.8;
+  border-top: 2px dashed #f2b8cf;
+  padding-top: 8px;
+}
+.stats span {
+  color: #e2607e;
+  background: #ffe4ef;
+  border: 2px solid #3b2d3f;
+  padding: 3px 5px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+.death-stats {
+  font-size: 7px;
+  color: #ffd94a;
+  line-height: 2;
+}
+
 .demo { margin-top: 12px; font-size: 7px; }
 .demo summary { cursor: pointer; color: #9a7a8a; }
 .demo-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

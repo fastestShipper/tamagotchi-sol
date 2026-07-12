@@ -37,12 +37,43 @@ UI.showAlert = function (tier, amountSol, donor) {
   alertTimeout = setTimeout(() => alertEl.classList.add('hidden'), 6000);
 };
 
-UI.showDeath = function (lifeMs) {
-  const mins = Math.floor(lifeMs / 60000);
-  const secs = Math.floor((lifeMs % 60000) / 1000);
-  document.getElementById('death-sub').textContent =
-    `nobody fed it... it lived ${mins}m ${secs}s`;
+function fmtLife(ms) {
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  return `${mins}m ${secs}s`;
+}
+
+// Replace an element's children with plain-text lines (no innerHTML, XSS-safe).
+function setLines(el, lines) {
+  el.replaceChildren();
+  lines.forEach((text, i) => {
+    if (i > 0) el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(text));
+  });
+}
+
+UI.showDeath = function (lifeMs, stats, offline) {
+  document.getElementById('death-sub').textContent = offline
+    ? `it starved while you were away... lived ${fmtLife(lifeMs)}`
+    : `nobody fed it... it lived ${fmtLife(lifeMs)}`;
+  if (stats) {
+    setLines(document.getElementById('death-stats'), [
+      `${stats.totalSol.toFixed(3)} SOL fed over its life`,
+      `best life: ${fmtLife(stats.bestLifeMs)} · pets lost: ${stats.petsLost}`,
+    ]);
+  }
   document.getElementById('death').classList.remove('hidden');
+};
+
+UI.renderStats = function (stats) {
+  if (!stats) return;
+  const el = document.getElementById('stats');
+  el.replaceChildren();
+  const label = document.createElement('span');
+  label.textContent = 'lifetime';
+  el.append(label, document.createTextNode(
+    ` ${stats.totalSol.toFixed(3)} SOL · ${stats.donations} gifts · ` +
+    `best ${fmtLife(stats.bestLifeMs)} · lost ${stats.petsLost}`));
 };
 
 UI.hideDeath = function () {

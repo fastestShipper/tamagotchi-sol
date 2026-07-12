@@ -36,6 +36,13 @@ const HUNGRY_PHRASES = [
   'don\'t let me die...', 'a snack please...',
 ];
 
+const SAVE_KEY = 'pixelpet_save_v1';
+
+// Lifetime stats persist even across pet deaths (the "stakes").
+const defaultStats = () => ({
+  totalSol: 0, donations: 0, bestLifeMs: 0, petsLost: 0,
+});
+
 const state = {
   energy: ENERGY_MAX,
   activity: 'idle',      // idle | walk | play | eat | party | sleep | dead
@@ -43,14 +50,49 @@ const state = {
   x: 88, facing: 1,
   frame: 0,
   hasCrown: false,
-  sugarRushUntil: 0,     // crown buff: half drain
+  sugarRushUntil: 0,     // crown buff: half drain (performance.now clock)
   ballUntil: 0,          // toy: chases ball
   ballX: 60,
   confetti: [],
   clouds: [{ x: 18, y: 12, s: 1 }, { x: 90, y: 26, s: 0.6 }, { x: 130, y: 8, s: 0.8 }],
   dead: false,
   bornAt: Date.now(),
+  stats: defaultStats(),
 };
+
+// Persist only the durable fields. sugarRush is stored as remaining ms so it
+// survives the performance.now() clock reset on reload.
+function saveState() {
+  const sugarRemaining = Math.max(0, state.sugarRushUntil - performance.now());
+  localStorage.setItem(SAVE_KEY, JSON.stringify({
+    energy: state.energy,
+    hasCrown: state.hasCrown,
+    sugarRemaining,
+    bornAt: state.bornAt,
+    dead: state.dead,
+    lastSeen: Date.now(),
+    stats: state.stats,
+  }));
+}
+
+function loadState() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch { saved = null; }
+  if (!saved) return;
+
+  state.stats = { ...defaultStats(), ...(saved.stats || {}) };
+  state.bornAt = saved.bornAt || Date.now();
+  state.hasCrown = !!saved.hasCrown;
+  state.sugarRushUntil = performance.now() + (saved.sugarRemaining || 0);
+
+  if (saved.dead) { state.dead = true; state.activity = 'dead'; state.energy = 0; return; }
+
+  // The pet keeps starving while the tab is closed. Apply offline drain.
+  const offlineSec = Math.max(0, (Date.now() - (saved.lastSeen || Date.now())) / 1000);
+  const drainRate = saved.sugarRemaining > 0 ? DRAIN_PER_SEC * 0.5 : DRAIN_PER_SEC;
+  state.energy = Math.max(0, (saved.energy ?? ENERGY_MAX) - drainRate * offlineSec);
+  if (state.energy <= 0) { state.dead = true; state.activity = 'dead'; state.offlineDeath = true; }
+}
 
 let canvas, ctx, lastTime = 0, lastLogicAt = 0, animTimer = 0, blinkTimer = 0, phraseTimer = 8;
 
@@ -58,11 +100,24 @@ function init() {
   canvas = document.getElementById('game');
   ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
+
+  loadState();
+  UI.renderStats(state.stats);
+
   lastTime = performance.now();
   lastLogicAt = lastTime;
   requestAnimationFrame(loop);
   setInterval(heartbeat, 1000);
-  setActivity('walk', 4);
+  setInterval(saveState, 5000);
+  // Save when the tab is hidden or closed so offline drain is accurate.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+  window.addEventListener('beforeunload', saveState);
+
+  if (state.dead) {
+    UI.showDeath(Date.now() - state.bornAt, state.stats, state.offlineDeath);
+  } else {
+    setActivity('walk', 4);
+  }
   render(); // first paint even if rAF is throttled (hidden tab)
 }
 
@@ -141,8 +196,13 @@ function update(dt) {
 function die() {
   state.dead = true;
   state.activity = 'dead';
+  const lifeMs = Date.now() - state.bornAt;
+  state.stats.petsLost += 1;
+  state.stats.bestLifeMs = Math.max(state.stats.bestLifeMs, lifeMs);
+  saveState();
   say('...', 2000);
-  UI.showDeath(Date.now() - state.bornAt);
+  UI.showDeath(lifeMs, state.stats);
+  UI.renderStats(state.stats);
 }
 
 function currentSprite() {
@@ -262,6 +322,9 @@ function onDonation(amountSol, donor) {
   if (state.dead) return;
   const tier = TIERS.find(t => amountSol >= t.minSol) || TIERS[TIERS.length - 1];
   state.energy = Math.min(ENERGY_MAX, state.energy + tier.energy);
+  state.stats.totalSol += amountSol;
+  state.stats.donations += 1;
+  UI.renderStats(state.stats);
 
   const shortDonor = donor.length > 12 ? donor.slice(0, 4) + '..' + donor.slice(-4) : donor;
   const msg = tier.thanks[Math.floor(Math.random() * tier.thanks.length)]
@@ -270,6 +333,8 @@ function onDonation(amountSol, donor) {
   UI.showAlert(tier, amountSol, shortDonor);
   say(msg, 6000);
   UI.playChime(tier.id);
+
+  saveState();
 
   switch (tier.id) {
     case 'crown':
@@ -298,8 +363,10 @@ function onDonation(amountSol, donor) {
 }
 
 function restart() {
+  // Fresh pet, but lifetime stats (donations, pets lost) carry over.
   state.energy = ENERGY_MAX;
   state.dead = false;
+  state.offlineDeath = false;
   state.hasCrown = false;
   state.sugarRushUntil = 0;
   state.ballUntil = 0;
@@ -307,6 +374,7 @@ function restart() {
   state.bornAt = Date.now();
   setActivity('walk', 3);
   UI.hideDeath();
+  saveState();
   say('hello! i\'m new here!', 4000);
 }
 
