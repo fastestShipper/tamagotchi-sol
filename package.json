@@ -1,0 +1,15 @@
+{
+  "name": "tamagotchi-sol",
+  "version": "1.0.0",
+  "description": "A cute pixel-art tamagotchi that lives in the browser and survives on SOL donations. It walks, plays, blinks, sleeps, begs when hungry. Energy drains in ~12 minutes; at zero it dies for real (grave + GAME OVER). Donations trigger stream-style alerts with the donor's address, a thank-you speech bubble, and a chime.",
+  "main": "game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4"
+  }
+}

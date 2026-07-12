@@ -12,9 +12,37 @@ python -m http.server 8123 --directory .
 
 Open http://localhost:8123. Until you configure a wallet, use the "demo mode" panel at the bottom to test every tier for free.
 
-## Go live with real SOL
+## The cat's wallet
 
-Edit `solana.js` and set `CONFIG.WALLET_ADDRESS` to your receiving address. The page polls the public mainnet RPC every 15s (`getSignaturesForAddress` + balance delta), so donations from any wallet app count. Old transactions are marked seen on the first poll and never replay. Switch `RPC_URL` to devnet for testing.
+The pet has its own vanity Solana address (same on every network):
+
+```
+C4t3XdZB36eHU11PK9QGtVgNPrKDDfkwvEHSAGwM64tT
+```
+
+The private key lives in `cat-wallet.json` (gitignored, NEVER committed). Whoever holds that file controls the donations. Back it up in a password manager. To regrind a different vanity prefix, see the grinder note below.
+
+## Networks
+
+`solana.js` has a one-line switch:
+
+```js
+NETWORK: 'devnet',   // free e2e testing with fake SOL
+// NETWORK: 'mainnet', // accept real SOL
+```
+
+The watcher polls `getSignaturesForAddress` + `getTransaction`, computes the balance delta on the cat's account, and reads the fee payer as the donor. Old transactions are marked seen on the first poll and never replay.
+
+## Testing tools
+
+- `node verify-parse.mjs <address>` — proves the on-chain parse path against real chain data (defaults to a live account; validates amount + sender extraction).
+- `node donate.devnet.mjs 0.1` — funds a throwaway donor via devnet airdrop and sends a real transfer to the cat, so you can watch the frontend react. (Devnet faucet is rate-limited per IP; if airdrop 429s, grab test SOL at https://faucet.solana.com and rerun.)
+
+## Verified
+
+- Reaction path (alerts, bubbles, tiers, confetti, permadeath, restart): confirmed in-browser.
+- On-chain read/parse path: confirmed against live mainnet transfers — parsed amounts match chain balance deltas exactly, senders are valid pubkeys.
+- Wallet keypair: seed cryptographically derives the vanity address (round-trip verified).
 
 ## Donation tiers
 

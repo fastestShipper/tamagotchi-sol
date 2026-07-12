@@ -1,0 +1,6 @@
+# NEVER commit wallet secrets. The keypair file holds the cat's private key.
+cat-wallet.json
+*-keypair.json
+*.secret.json
+
+node_modules/

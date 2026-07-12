@@ -2,11 +2,18 @@
 // polling against a public endpoint. Detects incoming transfers to WALLET_ADDRESS
 // and forwards (amount, sender) to Game.onDonation.
 
+const RPC = {
+  devnet: 'https://api.devnet.solana.com',
+  mainnet: 'https://api.mainnet-beta.solana.com',
+};
+
 const CONFIG = {
-  // PUT YOUR RECEIVING ADDRESS HERE. Empty string = watcher stays off (demo mode only).
-  WALLET_ADDRESS: '',
-  RPC_URL: 'https://api.mainnet-beta.solana.com', // or https://api.devnet.solana.com
-  POLL_MS: 15000,
+  // The cat's vanity wallet. Same address on every network.
+  WALLET_ADDRESS: 'C4t3XdZB36eHU11PK9QGtVgNPrKDDfkwvEHSAGwM64tT',
+  // Flip to 'mainnet' to accept real SOL. 'devnet' is for free e2e testing.
+  NETWORK: 'devnet',
+  get RPC_URL() { return RPC[this.NETWORK]; },
+  POLL_MS: 8000,
   MIN_SOL: 0.001, // ignore dust below this
 };
 
