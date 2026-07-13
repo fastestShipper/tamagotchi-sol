@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03070c">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>BROKEDEV.GAMES // Playable indie studio</title>
+  <meta name="description" content="BROKEDEV.GAMES is a playable indie game studio website. Enter the WebGL world, explore live systems, run arcade simulations, and inspect the public build.">
+  <link rel="canonical" href="https://brokedev.games/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="BROKEDEV.GAMES">
+  <meta property="og:title" content="BROKEDEV.GAMES // THE WEBSITE IS THE GAME">
+  <meta property="og:description" content="A playable WebGL studio shell. Explore the build. Run the simulations. No spoilers.">
+  <meta property="og:url" content="https://brokedev.games/">
+  <meta property="og:image" content="https://brokedev.games/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BROKEDEV.GAMES // THE WEBSITE IS THE GAME">
+  <meta name="twitter:description" content="A playable WebGL studio shell from an independent game developer.">
+  <meta name="twitter:image" content="https://brokedev.games/og.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#interface">Skip to interface</a>
+
+  <div id="webgl-root" aria-hidden="true"></div>
+  <div class="fallback-world" aria-hidden="true">
+    <div class="fallback-grid"></div>
+    <div class="fallback-core">B_</div>
+  </div>
+  <div class="screen-noise" aria-hidden="true"></div>
+  <div class="screen-vignette" aria-hidden="true"></div>
+
+  <div class="boot-screen" id="boot-screen" role="status" aria-live="polite">
+    <div class="boot-mark">B_</div>
+    <div class="boot-copy">
+      <strong>PLAYABLE_STUDIO.SYS</strong>
+      <span id="boot-status">INITIALIZING WORLD</span>
+      <div class="boot-track" aria-hidden="true"><i></i></div>
+    </div>
+  </div>
+
+  <header class="hud-top" id="interface">
+    <a class="brand" href="#" data-home aria-label="BROKEDEV.GAMES home">
+      <span class="brand-mark">B_</span>
+      <span class="brand-copy"><strong>BROKEDEV.GAMES</strong><small>PLAYABLE STUDIO</small></span>
+    </a>
+
+    <div class="world-status" aria-label="World status">
+      <span class="status-light"></span>
+      <span id="world-status-text">WORLD: BOOTING</span>
+      <span class="hud-clock" id="studio-clock">LIMA --:--:--</span>
+    </div>
+
+    <nav class="hud-nav" aria-label="Studio navigation">
+      <button type="button" data-panel="project">PROJECT</button>
+      <button type="button" data-panel="studio">STUDIO</button>
+      <button type="button" data-panel="support">SUPPORT</button>
+      <a href="https://github.com/fastestshipper" target="_blank" rel="noopener noreferrer">GITHUB ↗</a>
+      <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="false">SOUND OFF</button>
+    </nav>
+  </header>
+
+  <aside class="mission-hud" aria-label="Current mission">
+    <p>ACTIVE MISSION</p>
+    <strong id="mission-title">ENTER THE STUDIO</strong>
+    <span id="mission-copy">Initialize the playable world.</span>
+    <div class="mission-progress">
+      <span>DATA SHARDS</span>
+      <strong><b id="shard-count">0</b>/6</strong>
+    </div>
+  </aside>
+
+  <aside class="telemetry-hud" aria-hidden="true">
+    <span>NODE // LIMA</span>
+    <span>FPS <b id="fps-counter">--</b></span>
+    <span>POS <b id="position-readout">00.0 / 00.0</b></span>
+  </aside>
+
+  <div class="world-tooltip" id="world-tooltip" aria-hidden="true">
+    <span id="tooltip-kicker">NODE</span>
+    <strong id="tooltip-title">PROJECT</strong>
+    <small>CLICK OR PRESS E</small>
+  </div>
+
+  <div class="world-toast" id="world-toast" role="status" aria-live="polite"></div>
+
+  <main class="play-layer">
+    <div class="reticle" aria-hidden="true"><i></i></div>
+
+    <section class="intro-card" id="intro-card" aria-labelledby="intro-title">
+      <p class="eyebrow">PLAYABLE STUDIO // BUILD 001</p>
+      <h1 id="intro-title">THE WEBSITE<br>IS THE GAME.</h1>
+      <p class="intro-copy">
+        Move through a live WebGL studio, collect data shards, inspect public
+        terminals, and enter the arcade. Everything you see is running in the page.
+      </p>
+      <div class="intro-actions">
+        <button class="action-button action-primary" type="button" data-enter-world>
+          <span>ENTER WORLD</span><kbd>ENTER</kbd>
+        </button>
+        <button class="action-button" type="button" data-panel="help">HOW TO PLAY</button>
+      </div>
+      <div class="intro-specs" aria-label="Experience specifications">
+        <span><b>RENDER</b> WEBGL 2</span>
+        <span><b>WORLD</b> REALTIME</span>
+        <span><b>MODE</b> PLAYABLE</span>
+      </div>
+    </section>
+
+    <section class="panel-shell" id="panel-shell" aria-modal="true" role="dialog" aria-label="Studio terminal" hidden>
+      <div class="panel-chrome">
+        <span id="panel-route">/public/node</span>
+        <span>READ_ONLY</span>
+        <button type="button" data-close-panel aria-label="Close panel">ESC ×</button>
+      </div>
+
+      <div class="panel-view" data-panel-view="project" hidden>
+        <p class="panel-index">NODE 01 // PROJECT_001</p>
+        <h2 id="panel-title">BROKE DEV</h2>
+        <p class="panel-lede">
+          The market entry for BROKEDEV.GAMES. A systems-driven indie title in
+          active development. The public shell is live; characters, world data,
+          and core mechanics remain sealed until the reveal earns itself.
+        </p>
+        <div class="status-grid">
+          <div><span>PHASE</span><strong>PRE-ALPHA</strong></div>
+          <div><span>BUILD</span><strong>ACTIVE</strong></div>
+          <div><span>REVEAL</span><strong>LOCKED</strong></div>
+          <div><span>ENGINEERING</span><strong>PUBLIC PROOF</strong></div>
+        </div>
+        <div class="panel-actions">
+          <a class="action-button action-primary" href="https://github.com/fastestshipper" target="_blank" rel="noopener noreferrer">VIEW PUBLIC GITHUB ↗</a>
+          <button class="action-button" type="button" data-focus-node="arcade">VISIT ARCADE NODE</button>
+        </div>
+      </div>
+
+      <div class="panel-view" data-panel-view="studio" hidden>
+        <p class="panel-index">NODE 02 // STUDIO_PROFILE</p>
+        <h2>BROKEDEV.GAMES</h2>
+        <p class="panel-lede">
+          An independent game studio building compact, expressive worlds where
+          systems create stories. The website is the first public proof: interface,
+          world, toy, and portfolio are the same executable object.
+        </p>
+        <ol class="studio-principles">
+          <li><b>01</b><span><strong>PLAY BEFORE PITCH</strong><small>The interaction explains the skill.</small></span></li>
+          <li><b>02</b><span><strong>SMALL ENOUGH TO SHIP</strong><small>Scope is a design mechanic.</small></span></li>
+          <li><b>03</b><span><strong>SYSTEMS WITH PERSONALITY</strong><small>Even a menu should feel alive.</small></span></li>
+        </ol>
+      </div>
+
+      <div class="panel-view" data-panel-view="tools" hidden>
+        <p class="panel-index">NODE 03 // FREE_TOOL</p>
+        <h2>PIXEL SCALE</h2>
+        <p class="panel-lede compact">Find the largest clean integer scale without leaving the world.</p>
+        <form class="pixel-tool" id="pixel-form">
+          <label>BASE WIDTH<input id="base-width" type="number" min="1" value="320"></label>
+          <label>BASE HEIGHT<input id="base-height" type="number" min="1" value="180"></label>
+          <label>TARGET WIDTH<input id="target-width" type="number" min="1" value="1920"></label>
+          <label>TARGET HEIGHT<input id="target-height" type="number" min="1" value="1080"></label>
+          <button class="action-button action-primary" type="submit">CALCULATE</button>
+        </form>
+        <output class="tool-result" id="pixel-output" aria-live="polite">
+          <span>SCALE <b>6×</b></span><span>OUTPUT <b>1920 × 1080</b></span><span>LETTERBOX <b>0 × 0</b></span>
+        </output>
+      </div>
+
+      <div class="panel-view" data-panel-view="support" hidden>
+        <p class="panel-index">NODE 04 // OPTIONAL_SUPPORT</p>
+        <h2>KEEP IT RUNNING.</h2>
+        <p class="panel-lede compact">
+          Direct support helps the studio keep building. It is optional and does
+          not unlock access, perks, or financial returns.
+        </p>
+        <div class="wallet-module">
+          <span>SOLANA // PUBLIC ADDRESS</span>
+          <code id="support-wallet">GKnkjr9pTnoSv5FVshG3ttXYrSeUfRWiGzEfMwHyVNvv</code>
+          <div class="panel-actions">
+            <button class="action-button action-primary" id="copy-wallet" type="button">COPY WALLET</button>
+            <a class="action-button" href="https://solscan.io/account/GKnkjr9pTnoSv5FVshG3ttXYrSeUfRWiGzEfMwHyVNvv" target="_blank" rel="noopener noreferrer">VERIFY ↗</a>
+          </div>
+          <small>Always verify the complete address before sending.</small>
+        </div>
+      </div>
+
+      <div class="panel-view" data-panel-view="help" hidden>
+        <p class="panel-index">SYSTEM // INPUT_MAP</p>
+        <h2>HOW TO PLAY</h2>
+        <div class="control-grid">
+          <div><kbd>WASD</kbd><span>MOVE DRONE</span></div>
+          <div><kbd>DRAG</kbd><span>ORBIT CAMERA</span></div>
+          <div><kbd>E</kbd><span>USE NEARBY NODE</span></div>
+          <div><kbd>1</kbd><span>PACKET CHASE</span></div>
+          <div><kbd>ESC</kbd><span>EXIT MODE / CLOSE</span></div>
+          <div><kbd>CLICK</kbd><span>OPEN WORLD NODES</span></div>
+        </div>
+        <p class="panel-note">On touch devices, use the on-screen controls and drag anywhere outside the interface to orbit.</p>
+      </div>
+    </section>
+
+    <section class="arcade-hud" id="arcade-hud" aria-live="polite" hidden>
+      <div><span>SIMULATION</span><strong>PACKET CHASE</strong></div>
+      <div><span>SCORE</span><strong id="arcade-score">000</strong></div>
+      <div><span>STATUS</span><strong id="arcade-status">RUNNING</strong></div>
+      <button type="button" data-exit-arcade>EXIT <kbd>ESC</kbd></button>
+    </section>
+  </main>
+
+  <nav class="action-dock" aria-label="World actions">
+    <button type="button" data-start-arcade><kbd>1</kbd><span>ARCADE</span></button>
+    <button type="button" data-panel="project"><kbd>2</kbd><span>PROJECT</span></button>
+    <button type="button" data-panel="tools"><kbd>3</kbd><span>FREE TOOL</span></button>
+    <button type="button" data-panel="support"><kbd>4</kbd><span>SUPPORT</span></button>
+    <a href="https://github.com/fastestshipper" target="_blank" rel="noopener noreferrer"><kbd>↗</kbd><span>GITHUB</span></a>
+  </nav>
+
+  <div class="mobile-controls" aria-label="Touch controls">
+    <div class="mobile-dpad">
+      <button type="button" data-move="up" aria-label="Move forward">▲</button>
+      <button type="button" data-move="left" aria-label="Move left">◀</button>
+      <button type="button" data-move="down" aria-label="Move backward">▼</button>
+      <button type="button" data-move="right" aria-label="Move right">▶</button>
+    </div>
+    <button class="mobile-action" type="button" data-mobile-action>USE</button>
+  </div>
+
+  <noscript>
+    <div class="noscript-notice">JavaScript is required to run the playable studio.</div>
+  </noscript>
+</body>
+</html>

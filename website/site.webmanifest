@@ -1,0 +1,9 @@
+{
+  "name": "BROKEDEV.GAMES",
+  "short_name": "BROKEDEV",
+  "description": "Independent games compiling now.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050912",
+  "theme_color": "#050912"
+}
